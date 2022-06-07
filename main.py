@@ -69,7 +69,7 @@ class RemoveOverlay:
         return probabilities
 
     @staticmethod
-    def mse(a, b):
+    def deviation(a, b):
         """Поиск отклонения массива b от a
 
         Принимает: два массива numpy.array
