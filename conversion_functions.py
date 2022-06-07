@@ -8,7 +8,7 @@ from PIL import Image
 from numpy import array
 
 
-def image_cutter(path, n_x, n_y, bias_x, bias_y,
+def image_cutter(path, n_x, n_y, bias_x, bias_y,  # Симулирует фотографии микроскопа
                  is_digit=True):  # Путь, кол-во кусков по х, кол-во кусков по у, смещение по х, смещение по у, формат выведения результата
     try:
         img = Image.open(path)
@@ -40,7 +40,7 @@ def image_cutter(path, n_x, n_y, bias_x, bias_y,
         print(ex)
 
 
-def rgb_to_grid(images):
+def rgb_to_grid(images):  # Преобразует массив фотографий из RGB в L
     grid_imgs = images.copy()
     for i in range(len(images)):
         for j in range(len(images[i])):
@@ -51,7 +51,7 @@ def rgb_to_grid(images):
     return grid_imgs
 
 
-def img_to_pixels(img):
+def img_to_pixels(img):  # Преобразует фотографию в цифру
     pixels_arr = []
     pixels = img.load()
     for a in range(img.size[1]):
@@ -61,7 +61,7 @@ def img_to_pixels(img):
     return pixels_arr
 
 
-def photos_to_digits(directory):
+def photos_to_digits(directory):  # Преобразует фотографии из директории в цифру
     images = []
     # for i in range(len(os.listdir(directory))):
     for i in range(7, 9):
@@ -86,7 +86,3 @@ def photos_to_digits(directory):
     print(numpy.array(images).shape)
     return images
 
-#
-# photos_to_digits('/home/artem/PycharmProjects/Remove_overlay/images')
-
-# print(image_cutter('photos/mother.jpg', 5, 5, 10, 10))
