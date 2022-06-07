@@ -62,10 +62,10 @@ class RemoveOverlay:
         probabilities = []
         if mode == 'x':
             for over in range(self.image_height):
-                probabilities.append(self.mse(img1[:, -1], img2[:, over]))
+                probabilities.append(self.deviation(img1[:, -1], img2[:, over]))
         elif mode == 'y':
             for over in range(self.image_width):
-                probabilities.append(self.mse(img1[-1, :], img2[over, :]))
+                probabilities.append(self.deviation(img1[-1, :], img2[over, :]))
         return probabilities
 
     @staticmethod
@@ -75,8 +75,8 @@ class RemoveOverlay:
         Принимает: два массива numpy.array
         Возвращает: отклонение"""
         mean = (a + b) / 2
-        mse = (a - mean) ** 2
-        return numpy.sum(mse)
+        res = (a - mean) ** 2
+        return numpy.sum(res)
 
 
 help(RemoveOverlay)
