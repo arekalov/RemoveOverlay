@@ -16,7 +16,7 @@ class RemoveOverlay:
         self.image_width = image_width
         self.image_height = image_height
         self.images = images
-        self.n = 5  # Количество проверок смещений
+        self.n = 15  # Количество проверок смещений
 
     def random_indexes_generator(self, n, mode):
         """
@@ -28,11 +28,11 @@ class RemoveOverlay:
         random_indexes = []
         for i in range(n):
             if mode == 'x':
-                first = (random.randint(0, self.images.shape[0] - 1), random.randint(0, self.images.shape[0] - 2))
+                first = (random.randint(0, self.images.shape[0] - 1), random.randint(0, self.images.shape[1] - 2))
                 second = (first[0], first[1] + 1)
                 random_indexes.append((first, second))
             elif mode == 'y':
-                first = (random.randint(0, self.images.shape[0] - 2), random.randint(0, self.images.shape[0] - 1))
+                first = (random.randint(0, self.images.shape[0] - 2), random.randint(0, self.images.shape[1] - 1))
                 second = (first[0] + 1, first[1])
                 random_indexes.append((first, second))
         return random_indexes
@@ -49,6 +49,8 @@ class RemoveOverlay:
             xs.append(probabilities.index(min(probabilities)) + 1)
         for im1, im2 in self.random_indexes_generator(self.n, 'y'):
             probabilities = self.probability_finder(im1, im2, 'y')
+
+            print(xs, statistics.mean(xs), statistics.stdev(xs))
             ys.append(probabilities.index(min(probabilities)) + 1)
         return statistics.mode(xs), statistics.mode(ys)
 
@@ -77,6 +79,3 @@ class RemoveOverlay:
         mean = (a + b) / 2
         res = (a - mean) ** 2
         return numpy.sum(res)
-
-
-help(RemoveOverlay)
