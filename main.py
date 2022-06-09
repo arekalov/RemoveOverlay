@@ -1,24 +1,63 @@
+import os
 import random
 import statistics
 import numpy
+from PIL import Image
 
 
 class RemoveOverlay:
     """Класс RemoveOverlay находит наложение 'кусков фотографий', при работе микроскопа"""
 
-    def __init__(self, image_width, image_height, images):
+    def __init__(self, directory_name, image_width=1650, image_height=1075, iters=10):
         """
         Инициализатор класса
 
-        Принимает: ширина фотографии, высота фотогографии, массив фотографий numpy.array с цифровым представлением изображений
+        Принимает: ширина фотографии, высота фотогографии, имя директории с фотографиями, количество проверок (по умолчанию 10)
         Возвращает: None
         """
         self.image_width = image_width
         self.image_height = image_height
-        self.images = images
-        self.n = 15  # Количество проверок смещений
+        self.directory_name = directory_name
+        self.iters = iters  # Количество проверок смещений
 
-    def random_indexes_generator(self, n, mode):
+    def set_iters(self, new_iters):
+        """
+        Изменяет количество проверок
+
+        Принимает: новое количество проверок
+        Возвращает: None
+        """
+        self.iters = new_iters
+
+    def get_iters(self):
+        """
+        Возвращает количество проверок
+
+        Принимает: None
+        Возвращает: количество проверок
+        """
+        return self.iters
+
+    def set_size(self, width, height):
+        """
+        Изменяет размер
+
+        Принимает: ширина, высота
+        Возвращает: None
+        """
+        self.image_width = width
+        self.image_height = height
+
+    def get_sze(self):
+        """
+        Возвращает размер картинки
+
+        Принимает: None
+        Возвращает: ширину и высоту картинки
+        """
+        return self.image_width, self.image_height
+
+    def random_indexes_generator(self, mode):
         """
         Генерирует массив изображений, на которых будет происходить поиск смещений
 
@@ -26,30 +65,39 @@ class RemoveOverlay:
         Возвращает: массив кортежей вида ('координата по х', 'координата по у')
         """
         random_indexes = []
-        for i in range(n):
+        for i in range(self.iters):
             if mode == 'x':
-                first = (random.randint(0, self.images.shape[0] - 1), random.randint(0, self.images.shape[1] - 2))
-                second = (first[0], first[1] + 1)
-                random_indexes.append((first, second))
+                dirs = len(os.listdir(self.directory_name))
+                selected_dir = random.randint(0, dirs - 1)
+                images_in_dir = len(os.listdir(f'{self.directory_name}/{selected_dir}'))
+                if selected_dir % 2 == 0:
+                    ind1 = (selected_dir, random.randint(0, images_in_dir - 2))
+                    ind2 = (ind1[0], ind1[1] + 1)
+                else:
+                    ind1 = (selected_dir, random.randint(1, images_in_dir - 1))
+                    ind2 = (ind1[0], ind1[1] - 1)
+                random_indexes.append((ind1, ind2))
             elif mode == 'y':
-                first = (random.randint(0, self.images.shape[0] - 2), random.randint(0, self.images.shape[1] - 1))
-                second = (first[0] + 1, first[1])
-                random_indexes.append((first, second))
+                dirs = len(os.listdir(self.directory_name))
+                selected_dir = random.randint(0, dirs - 2)
+                images_in_dir = len(os.listdir(f'{self.directory_name}/{selected_dir}'))
+                ind1 = (selected_dir, random.randint(0, images_in_dir - 1))
+                ind2 = (selected_dir + 1, abs(images_in_dir - 1 - ind1[1]))
+                random_indexes.append((ind1, ind2))
         return random_indexes
 
     def x_y_finder(self):
-        """Метод конвеера находит смещение по данным, заданным в конструкторе
+        """Конвеер находит смещение по данным, заданным в конструкторе
 
         Принимает: None
         Возвращает: кортеж из 2 целых чисел, смещений по x и y"""
         xs = []
         ys = []
-        for im1, im2 in self.random_indexes_generator(self.n, 'x'):
+        for im1, im2 in self.random_indexes_generator('x'):
             probabilities = self.probability_finder(im1, im2, 'x')
             xs.append(probabilities.index(min(probabilities)) + 1)
-        for im1, im2 in self.random_indexes_generator(self.n, 'y'):
+        for im1, im2 in self.random_indexes_generator('y'):
             probabilities = self.probability_finder(im1, im2, 'y')
-
             print(xs, statistics.mean(xs), statistics.stdev(xs))
             ys.append(probabilities.index(min(probabilities)) + 1)
         return statistics.mode(xs), statistics.mode(ys)
@@ -59,14 +107,16 @@ class RemoveOverlay:
 
         Принимает: индекс первой фотографии, из находящихся в self.images, индекс второй фотографии, из находящихся в self.images, ось ('x' 'y')
         Возвращает: массив вероятностей смещений по пикселям"""
-        img1 = self.images[ind1]
-        img2 = self.images[ind2]
+        img1 = Image.open(f'{self.directory_name}/{ind1[0]}/{ind1[0]}_{ind1[1]}.jpg').convert('L')
+        img2 = Image.open(f'{self.directory_name}/{ind2[0]}/{ind2[0]}_{ind2[1]}.jpg').convert('L')
+        img1 = numpy.array(img1)
+        img2 = numpy.array(img2)
         probabilities = []
         if mode == 'x':
-            for over in range(self.image_height):
+            for over in range(self.image_width):
                 probabilities.append(self.deviation(img1[:, -1], img2[:, over]))
         elif mode == 'y':
-            for over in range(self.image_width):
+            for over in range(self.image_height):
                 probabilities.append(self.deviation(img1[-1, :], img2[over, :]))
         return probabilities
 
