@@ -8,7 +8,7 @@ from PIL import Image
 class RemoveOverlay:
     """Класс RemoveOverlay находит наложение 'кусков фотографий', при работе микроскопа"""
 
-    def __init__(self, directory_name, image_width=1650, image_height=1075, iters=10):
+    def __init__(self, directory_name, image_width=1650, image_height=1075, iters=20):
         """
         Инициализатор класса
 
@@ -68,7 +68,7 @@ class RemoveOverlay:
         for i in range(self.iters):
             if mode == 'x':
                 dirs = len(os.listdir(self.directory_name))
-                selected_dir = random.randint(2, dirs - 3)
+                selected_dir = random.randint(2, dirs - 5)
                 images_in_dir = len(os.listdir(f'{self.directory_name}/{selected_dir}'))
                 if selected_dir % 2 == 0:
                     ind1 = (selected_dir, random.randint(3, images_in_dir - 5))
@@ -79,9 +79,9 @@ class RemoveOverlay:
                 random_indexes.append((ind1, ind2))
             elif mode == 'y':
                 dirs = len(os.listdir(self.directory_name))
-                selected_dir = random.randint(0, dirs - 2)
+                selected_dir = random.randint(2, dirs - 5)
                 images_in_dir = len(os.listdir(f'{self.directory_name}/{selected_dir}'))
-                ind1 = (selected_dir, random.randint(0, images_in_dir - 1))
+                ind1 = (selected_dir, random.randint(3, images_in_dir - 4))
                 ind2 = (selected_dir + 1, abs(images_in_dir - 1 - ind1[1]))
                 random_indexes.append((ind1, ind2))
         return random_indexes
@@ -99,7 +99,17 @@ class RemoveOverlay:
         for im1, im2 in self.random_indexes_generator('y'):
             probabilities = self.probability_finder(im1, im2, 'y')
             ys.append(probabilities.index(min(probabilities)) + 1)
-        return statistics.mode(xs), statistics.mode(ys)
+        # print(xs)
+        # print(ys)
+        xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 2),
+                                               round(statistics.mean(xs) + statistics.stdev(xs) / 2)),
+                          xs)))
+        ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 2),
+                                               round(statistics.mean(ys) + statistics.stdev(ys) / 2)),
+                          ys)))
+        # print(xs)
+        # print(ys)
+        return (statistics.mode(xs) + statistics.median(xs)) /2, (statistics.mode(ys) + statistics.median(ys)) / 2
 
     def probability_finder(self, ind1, ind2, mode):
         """Оценвиает вероятность наложения фото 1 на фото2
@@ -117,7 +127,7 @@ class RemoveOverlay:
         elif mode == 'y':
             for over in range(self.image_height):
                 probabilities.append(self.deviation(img1[-1, :], img2[over, :]))
-        print(ind1, ind2, probabilities.index(min(probabilities)) + 1)
+        # print(mode, ind1, ind2, probabilities.index(min(probabilities)) + 1)
         return probabilities
 
     @staticmethod
