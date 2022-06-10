@@ -129,3 +129,4 @@ class RemoveOverlay:
         mean = (a + b) / 2
         res = (a - mean) ** 2
         return numpy.sum(res)
+        """hey"""
