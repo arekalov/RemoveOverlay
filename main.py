@@ -101,21 +101,31 @@ class RemoveOverlay:
             ys.append(probabilities.index(min(probabilities)) + 1)
         # print(xs)
         # print(ys)
-        xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 2),
+        new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 2),
                                                round(statistics.mean(xs) + statistics.stdev(xs) / 2)),
                           xs)))
-        ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 2),
+        new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 2),
                                                round(statistics.mean(ys) + statistics.stdev(ys) / 2)),
                           ys)))
         # print(xs)
         # print(ys)
-        return (statistics.mode(xs) + statistics.median(xs)) /2, (statistics.mode(ys) + statistics.median(ys)) / 2
+        if not new_ys:
+            new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 1.5),
+                                                       round(statistics.mean(ys) + statistics.stdev(ys) / 1.5)),
+                                  ys)))
+        if not new_xs:
+            new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 1.5),
+                                                       round(statistics.mean(xs) + statistics.stdev(xs) / 1.5)),
+                                  xs)))
+        return (statistics.mode(new_xs) + statistics.median(new_xs)) /2, (statistics.mode(new_ys) + statistics.median(new_ys)) / 2
 
     def probability_finder(self, ind1, ind2, mode):
-        """Оценвиает вероятность наложения фото 1 на фото2
+        """
+        Оценвиает вероятность наложения фото 1 на фото2
 
         Принимает: индекс первой фотографии, из находящихся в self.images, индекс второй фотографии, из находящихся в self.images, ось ('x' 'y')
-        Возвращает: массив вероятностей смещений по пикселям"""
+        Возвращает: массив вероятностей смещений по пикселям
+        """
         img1 = Image.open(f'{self.directory_name}/{ind1[0]}/{ind1[0]}_{ind1[1]}.jpg').convert('L')
         img2 = Image.open(f'{self.directory_name}/{ind2[0]}/{ind2[0]}_{ind2[1]}.jpg').convert('L')
         img1 = numpy.array(img1)
