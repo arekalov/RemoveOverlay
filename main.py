@@ -68,13 +68,13 @@ class RemoveOverlay:
         for i in range(self.iters):
             if mode == 'x':
                 dirs = len(os.listdir(self.directory_name))
-                selected_dir = random.randint(0, dirs - 1)
+                selected_dir = random.randint(2, dirs - 3)
                 images_in_dir = len(os.listdir(f'{self.directory_name}/{selected_dir}'))
                 if selected_dir % 2 == 0:
-                    ind1 = (selected_dir, random.randint(0, images_in_dir - 2))
+                    ind1 = (selected_dir, random.randint(3, images_in_dir - 5))
                     ind2 = (ind1[0], ind1[1] + 1)
                 else:
-                    ind1 = (selected_dir, random.randint(1, images_in_dir - 1))
+                    ind1 = (selected_dir, random.randint(3, images_in_dir - 4))
                     ind2 = (ind1[0], ind1[1] - 1)
                 random_indexes.append((ind1, ind2))
             elif mode == 'y':
@@ -98,7 +98,6 @@ class RemoveOverlay:
             xs.append(probabilities.index(min(probabilities)) + 1)
         for im1, im2 in self.random_indexes_generator('y'):
             probabilities = self.probability_finder(im1, im2, 'y')
-            print(xs, statistics.mean(xs), statistics.stdev(xs))
             ys.append(probabilities.index(min(probabilities)) + 1)
         return statistics.mode(xs), statistics.mode(ys)
 
@@ -118,6 +117,7 @@ class RemoveOverlay:
         elif mode == 'y':
             for over in range(self.image_height):
                 probabilities.append(self.deviation(img1[-1, :], img2[over, :]))
+        print(ind1, ind2, probabilities.index(min(probabilities)) + 1)
         return probabilities
 
     @staticmethod
@@ -129,4 +129,3 @@ class RemoveOverlay:
         mean = (a + b) / 2
         res = (a - mean) ** 2
         return numpy.sum(res)
-        """hey"""
