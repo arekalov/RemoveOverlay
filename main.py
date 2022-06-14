@@ -102,11 +102,11 @@ class RemoveOverlay:
         # print(xs)
         # print(ys)
         new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 2),
-                                               round(statistics.mean(xs) + statistics.stdev(xs) / 2)),
-                          xs)))
+                                                   round(statistics.mean(xs) + statistics.stdev(xs) / 2)),
+                              xs)))
         new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 2),
-                                               round(statistics.mean(ys) + statistics.stdev(ys) / 2)),
-                          ys)))
+                                                   round(statistics.mean(ys) + statistics.stdev(ys) / 2)),
+                              ys)))
         # print(xs)
         # print(ys)
         if not new_ys:
@@ -117,7 +117,10 @@ class RemoveOverlay:
             new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 1.5),
                                                        round(statistics.mean(xs) + statistics.stdev(xs) / 1.5)),
                                   xs)))
-        return (statistics.mode(new_xs) + statistics.median(new_xs)) /2, (statistics.mode(new_ys) + statistics.median(new_ys)) / 2
+        return round((statistics.mode(new_xs) + statistics.median(new_xs)) / 2), round((
+                                                                                               statistics.mode(
+                                                                                                   new_ys) + statistics.median(
+                                                                                           new_ys)) / 2)
 
     def probability_finder(self, ind1, ind2, mode):
         """
@@ -149,3 +152,27 @@ class RemoveOverlay:
         mean = (a + b) / 2
         res = (a - mean) ** 2
         return numpy.sum(res)
+
+    def cut_and_sew(self, output_path, biases):
+        n_dirs = len(os.listdir(self.directory_name))
+        n_imgs = len(os.listdir(f"{self.directory_name}/{os.listdir(self.directory_name)[0]}"))
+        expansion = os.listdir(f"{self.directory_name}/{os.listdir(self.directory_name)[0]}")[0].split('.')[1]
+        # final_image = Image.new('RGB', (n_imgs * self.image_width - n_imgs * biases[0],
+        #                                 n_dirs * self.image_height - n_dirs * biases[1]))
+        final_image = Image.new('RGB', (n_imgs * self.image_width - n_imgs * biases[0],
+                                        n_dirs * self.image_height - n_dirs * biases[1]))
+        for y in range(0, n_dirs):
+            if y % 2 == 0:
+                for x in range(0, n_imgs):
+                    img_to_paste = Image.open(f'{self.directory_name}/{y}/{y}_{x}.{expansion}').crop()
+                    final_image.paste(img_to_paste, (self.image_width * x, self.image_height * y))
+                    print(f'{self.directory_name}/{y}/{y}_{x}.{expansion}',
+                          (self.image_width * x, self.image_height * y))
+            else:
+                for x in range(n_imgs - 1, 0, -1):
+                    a = x - 1
+                    img_to_paste = Image.open(f'{self.directory_name}/{y}/{y}_{x}.{expansion}')
+                    final_image.paste(img_to_paste, (a, self.image_height * y))
+                    print(f'{self.directory_name}/{y}/{y}_{x}.{expansion}',
+                          (self.image_width * a, self.image_height * y))
+        final_image.save(output_path)
