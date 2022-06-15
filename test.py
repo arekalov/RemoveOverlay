@@ -4,7 +4,7 @@ import statistics
 import numpy
 from PIL import Image
 
-from main import RemoveOverlay
+from RemoveOverlay import RemoveOverlay
 
 remover = RemoveOverlay('images')
 biases = remover.x_y_finder()

@@ -178,3 +178,4 @@ class RemoveOverlay:
                     final_image.paste(img_to_paste, (new_w * counter, new_h * y))
                     counter += 1
         final_image.save(output_path)
+
