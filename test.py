@@ -6,7 +6,7 @@ from PIL import Image
 
 from main import RemoveOverlay
 
-remover = RemoveOverlay('images')
+remover = RemoveOverlay('images2')
 biases = remover.x_y_finder()
 print(biases)
-remover.cut_and_sew('new.jpg', biases)
+# remover.cut_and_sew('new.jpg', biases)

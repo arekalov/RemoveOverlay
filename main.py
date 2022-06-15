@@ -159,8 +159,8 @@ class RemoveOverlay:
         expansion = os.listdir(f"{self.directory_name}/{os.listdir(self.directory_name)[0]}")[0].split('.')[1]
         # final_image = Image.new('RGB', (n_imgs * self.image_width - n_imgs * biases[0],
         #                                 n_dirs * self.image_height - n_dirs * biases[1]))
-        final_image = Image.new('RGB', (n_imgs * self.image_width - n_imgs * biases[0],
-                                        n_dirs * self.image_height - n_dirs * biases[1]))
+        final_image = Image.new('RGB', (n_imgs * self.image_width,
+                                        n_dirs * self.image_height))
         for y in range(0, n_dirs):
             if y % 2 == 0:
                 for x in range(0, n_imgs):
