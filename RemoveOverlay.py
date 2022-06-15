@@ -8,7 +8,7 @@ from PIL import Image
 class RemoveOverlay:
     """Класс RemoveOverlay находит наложение 'кусков фотографий', при работе микроскопа"""
 
-    def __init__(self, directory_name, image_width=1650, image_height=1075, iters=10):
+    def __init__(self, directory_name, image_width=1650, image_height=1075, iters=20):
         """
         Инициализатор класса
 
@@ -18,7 +18,7 @@ class RemoveOverlay:
         self.image_width = image_width
         self.image_height = image_height
         self.directory_name = directory_name
-        self.iters = iters  # Количество проверок смещений
+        self.iters = iters
 
     def set_iters(self, new_iters):
         """
@@ -68,26 +68,26 @@ class RemoveOverlay:
         for i in range(self.iters):
             if mode == 'x':
                 dirs = len(os.listdir(self.directory_name))
-                selected_dir = random.randint(0, dirs - 1)
+                selected_dir = random.randint(2, dirs - 5)
                 images_in_dir = len(os.listdir(f'{self.directory_name}/{selected_dir}'))
                 if selected_dir % 2 == 0:
-                    ind1 = (selected_dir, random.randint(0, images_in_dir - 2))
+                    ind1 = (selected_dir, random.randint(3, images_in_dir - 5))
                     ind2 = (ind1[0], ind1[1] + 1)
                 else:
-                    ind1 = (selected_dir, random.randint(1, images_in_dir - 1))
+                    ind1 = (selected_dir, random.randint(3, images_in_dir - 4))
                     ind2 = (ind1[0], ind1[1] - 1)
                 random_indexes.append((ind1, ind2))
             elif mode == 'y':
                 dirs = len(os.listdir(self.directory_name))
-                selected_dir = random.randint(0, dirs - 2)
+                selected_dir = random.randint(2, dirs - 5)
                 images_in_dir = len(os.listdir(f'{self.directory_name}/{selected_dir}'))
-                ind1 = (selected_dir, random.randint(0, images_in_dir - 1))
+                ind1 = (selected_dir, random.randint(3, images_in_dir - 4))
                 ind2 = (selected_dir + 1, abs(images_in_dir - 1 - ind1[1]))
                 random_indexes.append((ind1, ind2))
         return random_indexes
 
     def x_y_finder(self):
-        """Конвеер находит смещение по данным, заданным в конструкторе
+        """Находит смещение по данным, заданным в конструкторе
 
         Принимает: None
         Возвращает: кортеж из 2 целых чисел, смещений по x и y"""
@@ -98,15 +98,33 @@ class RemoveOverlay:
             xs.append(probabilities.index(min(probabilities)) + 1)
         for im1, im2 in self.random_indexes_generator('y'):
             probabilities = self.probability_finder(im1, im2, 'y')
-            print(xs, statistics.mean(xs), statistics.stdev(xs))
             ys.append(probabilities.index(min(probabilities)) + 1)
-        return statistics.mode(xs), statistics.mode(ys)
+        new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 2),
+                                                   round(statistics.mean(xs) + statistics.stdev(xs) / 2)),
+                              xs)))
+        new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 2),
+                                                   round(statistics.mean(ys) + statistics.stdev(ys) / 2)),
+                              ys)))
+        if not new_ys:
+            new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 1.5),
+                                                       round(statistics.mean(ys) + statistics.stdev(ys) / 1.5)),
+                                  ys)))
+        if not new_xs:
+            new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 1.5),
+                                                       round(statistics.mean(xs) + statistics.stdev(xs) / 1.5)),
+                                  xs)))
+        return round((statistics.mode(new_xs) + statistics.median(new_xs)) / 2), round((
+                                                                                               statistics.mode(
+                                                                                                   new_ys) + statistics.median(
+                                                                                           new_ys)) / 2)
 
     def probability_finder(self, ind1, ind2, mode):
-        """Оценвиает вероятность наложения фото 1 на фото2
+        """
+        Оценвиает вероятность наложения фото 1 на фото2
 
         Принимает: индекс первой фотографии, из находящихся в self.images, индекс второй фотографии, из находящихся в self.images, ось ('x' 'y')
-        Возвращает: массив вероятностей смещений по пикселям"""
+        Возвращает: массив вероятностей смещений по пикселям
+        """
         img1 = Image.open(f'{self.directory_name}/{ind1[0]}/{ind1[0]}_{ind1[1]}.jpg').convert('L')
         img2 = Image.open(f'{self.directory_name}/{ind2[0]}/{ind2[0]}_{ind2[1]}.jpg').convert('L')
         img1 = numpy.array(img1)
@@ -122,11 +140,42 @@ class RemoveOverlay:
 
     @staticmethod
     def deviation(a, b):
-        """Поиск отклонения массива b от a
+        """
+        Поиск отклонения массива b от a
 
         Принимает: два массива numpy.array
-        Возвращает: отклонение"""
+        Возвращает: отклонение
+        """
         mean = (a + b) / 2
         res = (a - mean) ** 2
         return numpy.sum(res)
-        """hey"""
+
+    def cut_and_sew(self, output_path, biases):
+        """
+        Обрезает куски фотографий и склеивает в одну
+
+        Принимает: путь для сохранения результата, смещения, которые будут обрезаны
+        Возвращает: None
+        """
+        n_dirs = len(os.listdir(self.directory_name))
+        n_imgs = len(os.listdir(f"{self.directory_name}/{os.listdir(self.directory_name)[0]}"))
+        expansion = os.listdir(f"{self.directory_name}/{os.listdir(self.directory_name)[0]}")[0].split('.')[1]
+        final_image = Image.new('RGB', (n_imgs * self.image_width - n_imgs * biases[0],
+                                        n_dirs * self.image_height - n_dirs * biases[1]))
+        new_w = self.image_width - biases[0]
+        new_h = self.image_height - biases[1]
+        for y in range(0, n_dirs):
+            if y % 2 == 0:
+                for x in range(0, n_imgs):
+                    img_to_paste = Image.open(f'{self.directory_name}/{y}/{y}_{x}.{expansion}').crop(
+                        (0, 0, new_w, new_h))
+                    final_image.paste(img_to_paste, (new_w * x, new_h * y))
+            else:
+                counter = 0
+                for x in range(n_imgs - 1, -1, -1):
+                    img_to_paste = Image.open(f'{self.directory_name}/{y}/{y}_{x}.{expansion}').crop(
+                        (0, 0, new_w, new_h))
+                    final_image.paste(img_to_paste, (new_w * counter, new_h * y))
+                    counter += 1
+        final_image.save(output_path)
+
