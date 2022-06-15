@@ -1,4 +1,4 @@
-main.py - класс RemoveOverlay
+RemoveOverlay.py - содержит класс RemoveOverlay
 
 test.py - тест работы класса
 
