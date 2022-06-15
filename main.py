@@ -18,7 +18,7 @@ class RemoveOverlay:
         self.image_width = image_width
         self.image_height = image_height
         self.directory_name = directory_name
-        self.iters = iters  # Количество проверок смещений
+        self.iters = iters
 
     def set_iters(self, new_iters):
         """
@@ -87,7 +87,7 @@ class RemoveOverlay:
         return random_indexes
 
     def x_y_finder(self):
-        """Конвеер находит смещение по данным, заданным в конструкторе
+        """Находит смещение по данным, заданным в конструкторе
 
         Принимает: None
         Возвращает: кортеж из 2 целых чисел, смещений по x и y"""
@@ -99,16 +99,12 @@ class RemoveOverlay:
         for im1, im2 in self.random_indexes_generator('y'):
             probabilities = self.probability_finder(im1, im2, 'y')
             ys.append(probabilities.index(min(probabilities)) + 1)
-        # print(xs)
-        # print(ys)
         new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 2),
                                                    round(statistics.mean(xs) + statistics.stdev(xs) / 2)),
                               xs)))
         new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 2),
                                                    round(statistics.mean(ys) + statistics.stdev(ys) / 2)),
                               ys)))
-        # print(xs)
-        # print(ys)
         if not new_ys:
             new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 1.5),
                                                        round(statistics.mean(ys) + statistics.stdev(ys) / 1.5)),
@@ -140,39 +136,45 @@ class RemoveOverlay:
         elif mode == 'y':
             for over in range(self.image_height):
                 probabilities.append(self.deviation(img1[-1, :], img2[over, :]))
-        # print(mode, ind1, ind2, probabilities.index(min(probabilities)) + 1)
         return probabilities
 
     @staticmethod
     def deviation(a, b):
-        """Поиск отклонения массива b от a
+        """
+        Поиск отклонения массива b от a
 
         Принимает: два массива numpy.array
-        Возвращает: отклонение"""
+        Возвращает: отклонение
+        """
         mean = (a + b) / 2
         res = (a - mean) ** 2
         return numpy.sum(res)
 
     def cut_and_sew(self, output_path, biases):
+        """
+        Обрезает куски фотографий и склеивает в одну
+
+        Принимает: путь для сохранения результата, смещения, которые будут обрезаны
+        Возвращает: None
+        """
         n_dirs = len(os.listdir(self.directory_name))
         n_imgs = len(os.listdir(f"{self.directory_name}/{os.listdir(self.directory_name)[0]}"))
         expansion = os.listdir(f"{self.directory_name}/{os.listdir(self.directory_name)[0]}")[0].split('.')[1]
-        # final_image = Image.new('RGB', (n_imgs * self.image_width - n_imgs * biases[0],
-        #                                 n_dirs * self.image_height - n_dirs * biases[1]))
-        final_image = Image.new('RGB', (n_imgs * self.image_width,
-                                        n_dirs * self.image_height))
+        final_image = Image.new('RGB', (n_imgs * self.image_width - n_imgs * biases[0],
+                                        n_dirs * self.image_height - n_dirs * biases[1]))
+        new_w = self.image_width - biases[0]
+        new_h = self.image_height - biases[1]
         for y in range(0, n_dirs):
             if y % 2 == 0:
                 for x in range(0, n_imgs):
-                    img_to_paste = Image.open(f'{self.directory_name}/{y}/{y}_{x}.{expansion}').crop()
-                    final_image.paste(img_to_paste, (self.image_width * x, self.image_height * y))
-                    print(f'{self.directory_name}/{y}/{y}_{x}.{expansion}',
-                          (self.image_width * x, self.image_height * y))
+                    img_to_paste = Image.open(f'{self.directory_name}/{y}/{y}_{x}.{expansion}').crop(
+                        (0, 0, new_w, new_h))
+                    final_image.paste(img_to_paste, (new_w * x, new_h * y))
             else:
-                for x in range(n_imgs - 1, 0, -1):
-                    a = x - 1
-                    img_to_paste = Image.open(f'{self.directory_name}/{y}/{y}_{x}.{expansion}')
-                    final_image.paste(img_to_paste, (a, self.image_height * y))
-                    print(f'{self.directory_name}/{y}/{y}_{x}.{expansion}',
-                          (self.image_width * a, self.image_height * y))
+                counter = 0
+                for x in range(n_imgs - 1, -1, -1):
+                    img_to_paste = Image.open(f'{self.directory_name}/{y}/{y}_{x}.{expansion}').crop(
+                        (0, 0, new_w, new_h))
+                    final_image.paste(img_to_paste, (new_w * counter, new_h * y))
+                    counter += 1
         final_image.save(output_path)
