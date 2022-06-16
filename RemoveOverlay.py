@@ -164,18 +164,18 @@ class RemoveOverlay:
                                         n_dirs * self.image_height - n_dirs * biases[1]))
         new_w = self.image_width - biases[0]
         new_h = self.image_height - biases[1]
+        half_bias_x, half_bias_y = biases[0] // 2, biases[1] // 2
         for y in range(0, n_dirs):
             if y % 2 == 0:
                 for x in range(0, n_imgs):
                     img_to_paste = Image.open(f'{self.directory_name}/{y}/{y}_{x}.{expansion}').crop(
-                        (0, 0, new_w, new_h))
+                        (half_bias_x, half_bias_y, self.image_width - half_bias_x, self.image_height - half_bias_y))
                     final_image.paste(img_to_paste, (new_w * x, new_h * y))
             else:
                 counter = 0
                 for x in range(n_imgs - 1, -1, -1):
                     img_to_paste = Image.open(f'{self.directory_name}/{y}/{y}_{x}.{expansion}').crop(
-                        (0, 0, new_w, new_h))
+                        (half_bias_x, half_bias_y, self.image_width - half_bias_x, self.image_height - half_bias_y))
                     final_image.paste(img_to_paste, (new_w * counter, new_h * y))
                     counter += 1
         final_image.save(output_path)
-
