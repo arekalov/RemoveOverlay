@@ -113,10 +113,8 @@ class RemoveOverlay:
             new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 1.5),
                                                        round(statistics.mean(xs) + statistics.stdev(xs) / 1.5)),
                                   xs)))
-        return round((statistics.mode(new_xs) + statistics.median(new_xs)) / 2), round((
-                                                                                               statistics.mode(
-                                                                                                   new_ys) + statistics.median(
-                                                                                           new_ys)) / 2)
+        return round((statistics.mode(new_xs) + statistics.median(new_xs)) / 2), \
+               round((statistics.mode(new_ys) + statistics.median(new_ys)) / 2)
 
     def probability_finder(self, ind1, ind2, mode):
         """
@@ -179,3 +177,4 @@ class RemoveOverlay:
                     final_image.paste(img_to_paste, (new_w * counter, new_h * y))
                     counter += 1
         final_image.save(output_path)
+
