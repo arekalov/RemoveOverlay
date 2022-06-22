@@ -57,6 +57,31 @@ class RemoveOverlay:
         """
         return self.image_width, self.image_height
 
+    def areas_splitter(self):
+        SEP_Y = 5  # Количество фоторгафий в одной области по у
+        SEP_X = 6   # Количество фотографий во одной области по х
+        y_areas = len(os.listdir(self.directory_name)) // SEP_Y
+        x_areas = len(os.listdir(f'{self.directory_name}/{os.listdir(self.directory_name)[0]}')) // SEP_X
+        # if len(os.listdir(self.directory_name)) % SEP_Y != 0:
+        #     y_areas -= 1
+        # if len(os.listdir(f'{self.directory_name}/{os.listdir(self.directory_name)[0]}')) % SEP_X != 0:
+        #     x_areas -= 1
+        print(x_areas, y_areas)
+        border_x = []
+        border_y = []
+        counter = 0
+        for i in range(len(os.listdir(self.directory_name))):
+            if (i + 1) % SEP_Y == 0 and counter < y_areas:
+                border_y.append(i)
+                counter += 1
+        counter = 0
+        for i in range(len(os.listdir(f'{self.directory_name}/{os.listdir(self.directory_name)[0]}'))):
+            if (i + 1) % SEP_X == 0 and counter < x_areas:
+                border_x.append(i)
+                counter += 1
+        print(border_x)
+        print(border_y)
+
     def random_indexes_generator(self, mode):
         """
         Генерирует массив изображений, на которых будет происходить поиск смещений
@@ -178,4 +203,3 @@ class RemoveOverlay:
                     final_image.paste(img_to_paste, (new_w * counter, new_h * y))
                     counter += 1
         final_image.save(output_path)
-
