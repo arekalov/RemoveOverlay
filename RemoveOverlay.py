@@ -179,3 +179,4 @@ class RemoveOverlay:
                     counter += 1
         final_image.save(output_path)
 
+        
