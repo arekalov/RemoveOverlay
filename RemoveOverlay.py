@@ -8,17 +8,19 @@ from PIL import Image
 class RemoveOverlay:
     """Класс RemoveOverlay находит наложение 'кусков фотографий', при работе микроскопа"""
 
-    def __init__(self, directory_name, image_width=1650, image_height=1075, iters=20):
+    def __init__(self, directory_name, image_width=1650, image_height=1075, iters=20, areas_iters=5):
         """
         Инициализатор класса
 
-        Принимает: ширина фотографии, высота фотогографии, имя директории с фотографиями, количество проверок (по умолчанию 10)
+        Принимает: ширина фотографии, высота фотогографии, имя директории с фотографиями, количество проверок (по умолчанию 10) в стандартном режиме,
+        количество проеерок в режиме разбития на области
         Возвращает: None
         """
         self.image_width = image_width
         self.image_height = image_height
         self.directory_name = directory_name
         self.iters = iters
+        self.areas_iters = areas_iters
 
     def set_iters(self, new_iters):
         """
@@ -59,14 +61,16 @@ class RemoveOverlay:
 
     def areas_splitter(self):
         SEP_Y = 5  # Количество фоторгафий в одной области по у
-        SEP_X = 6   # Количество фотографий во одной области по х
+        SEP_X = 6  # Количество фотографий во одной области по х
         y_areas = len(os.listdir(self.directory_name)) // SEP_Y
         x_areas = len(os.listdir(f'{self.directory_name}/{os.listdir(self.directory_name)[0]}')) // SEP_X
-        # if len(os.listdir(self.directory_name)) % SEP_Y != 0:
-        #     y_areas -= 1
-        # if len(os.listdir(f'{self.directory_name}/{os.listdir(self.directory_name)[0]}')) % SEP_X != 0:
-        #     x_areas -= 1
-        print(x_areas, y_areas)
+        x_flag, y_flag = False, False
+        if len(os.listdir(self.directory_name)) % SEP_Y != 0:
+            y_flag = True
+            y_areas -= 1
+        if len(os.listdir(f'{self.directory_name}/{os.listdir(self.directory_name)[0]}')) % SEP_X != 0:
+            x_areas -= 1
+            x_flag = True
         border_x = []
         border_y = []
         counter = 0
@@ -79,8 +83,48 @@ class RemoveOverlay:
             if (i + 1) % SEP_X == 0 and counter < x_areas:
                 border_x.append(i)
                 counter += 1
-        print(border_x)
-        print(border_y)
+        if x_flag:
+            border_x.append(len(os.listdir(f'{self.directory_name}/{os.listdir(self.directory_name)[0]}')) - 1)
+        if y_flag:
+            border_y.append(len(os.listdir(self.directory_name)) - 1)
+        areas = []
+        pred_y = 0
+        for i in range(len(border_y)):
+            pred_x = 0
+            line = []
+            for j in range(len(border_x)):
+                line.append(((pred_x, pred_y), (border_x[j], border_y[i])))
+                pred_x = border_x[0] + 1
+            pred_y = border_y[i] + 1
+            areas.append(line)
+        return areas
+
+    def x_y_areas_finder(self, areas):
+        print(len(areas))
+        biases = []
+        for i in range(len(areas)):
+            line = []
+            for j in range(len(areas[0])):
+                line.append(self.x_y_finder(areas[i][j]))
+            biases.append(line)
+        return biases
+
+    def random_index_generator_areas(self, lt, rb, mode):
+        random_indexes = []
+        if mode == 'x':
+            print(mode)
+            for i in range(self.areas_iters):
+                first = (random.randint(lt[1], rb[1]), random.randint(lt[0], rb[0] - 1))
+                second = (first[0] + 1, first[1])
+                random_indexes.append((first, second))
+        elif mode == 'y':
+            for i in range(self.areas_iters):
+                first = (random.randint(lt[0], rb[0]), random.randint(lt[1], rb[1] - 1))
+                second = (first[0], first[1] + 1)
+                random_indexes.append((first, second))
+        print(lt, rb)
+        print(random_indexes)
+        return random_indexes
 
     def random_indexes_generator(self, mode):
         """
@@ -111,25 +155,36 @@ class RemoveOverlay:
                 random_indexes.append((ind1, ind2))
         return random_indexes
 
-    def x_y_finder(self):
+    def x_y_finder(self, lprb=()):
         """Находит смещение по данным, заданным в конструкторе
 
         Принимает: None
         Возвращает: кортеж из 2 целых чисел, смещений по x и y"""
         xs = []
         ys = []
-        for im1, im2 in self.random_indexes_generator('x'):
-            probabilities = self.probability_finder(im1, im2, 'x')
-            xs.append(probabilities.index(min(probabilities)) + 1)
-        for im1, im2 in self.random_indexes_generator('y'):
-            probabilities = self.probability_finder(im1, im2, 'y')
-            ys.append(probabilities.index(min(probabilities)) + 1)
-        new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 2),
-                                                   round(statistics.mean(xs) + statistics.stdev(xs) / 2)),
-                              xs)))
-        new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 2),
-                                                   round(statistics.mean(ys) + statistics.stdev(ys) / 2)),
-                              ys)))
+        if not lprb:
+            for im1, im2 in self.random_indexes_generator('x'):
+                probabilities = self.probability_finder(im1, im2, 'x')
+                xs.append(probabilities.index(min(probabilities)) + 1)
+            for im1, im2 in self.random_indexes_generator('y'):
+                probabilities = self.probability_finder(im1, im2, 'y')
+                ys.append(probabilities.index(min(probabilities)) + 1)
+        else:
+            for im1, im2 in self.random_index_generator_areas(lprb[0], lprb[1], 'x'):
+                print(im1, im2)
+                probabilities = self.probability_finder(im1, im2, 'x')
+                xs.append(probabilities.index(min(probabilities)) + 1)
+            for im1, im2 in self.random_index_generator_areas(lprb[0], lprb[1], 'y'):
+                probabilities = self.probability_finder(im1, im2, 'y')
+                ys.append(probabilities.index(min(probabilities)) + 1)
+        # new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 2),
+        #                                            round(statistics.mean(xs) + statistics.stdev(xs) / 2)),
+        #                       xs)))
+        # new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 2),
+        #                                            round(statistics.mean(ys) + statistics.stdev(ys) / 2)),
+        #                       ys)))
+        new_xs = xs
+        new_ys = ys
         if not new_ys:
             new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 1.5),
                                                        round(statistics.mean(ys) + statistics.stdev(ys) / 1.5)),
@@ -138,10 +193,8 @@ class RemoveOverlay:
             new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 1.5),
                                                        round(statistics.mean(xs) + statistics.stdev(xs) / 1.5)),
                                   xs)))
-        return round((statistics.mode(new_xs) + statistics.median(new_xs)) / 2), round((
-                                                                                               statistics.mode(
-                                                                                                   new_ys) + statistics.median(
-                                                                                           new_ys)) / 2)
+        return round((statistics.mode(new_xs) + statistics.median(new_xs)) / 2), round(
+            (statistics.mode(new_ys) + statistics.median(new_ys)) / 2)
 
     def probability_finder(self, ind1, ind2, mode):
         """
