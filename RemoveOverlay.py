@@ -36,9 +36,9 @@ class RemoveOverlay:
         Возвращает количество проверок
 
         Принимает: None
-        Возвращает: количество проверок
+        Возвращает: количество проверок для обычного и режима разбиения на области
         """
-        return self.iters
+        return self.iters, self.areas_iters
 
     def set_size(self, width, height):
         """
@@ -60,6 +60,12 @@ class RemoveOverlay:
         return self.image_width, self.image_height
 
     def areas_splitter(self):
+        """
+        Разбивает картинку на области
+
+        Принимает: None
+        Возвращает: Матрицу, клетка которой - кортеж из координат левого верхнего и правого нижнего угла
+        """
         SEP_Y = 5  # Количество фоторгафий в одной области по у
         SEP_X = 6  # Количество фотографий во одной области по х
         y_areas = len(os.listdir(self.directory_name)) // SEP_Y
@@ -100,7 +106,12 @@ class RemoveOverlay:
         return areas
 
     def x_y_areas_finder(self, areas):
-        print(len(areas))
+        """
+        Создает матриуу смещений, той же размерности, что и матрица разбиения на области
+
+        Принимает: матриуа разбиения на области
+        Возвращает: матрицу смещений
+        """
         biases = []
         for i in range(len(areas)):
             line = []
@@ -110,6 +121,12 @@ class RemoveOverlay:
         return biases
 
     def random_index_generator_areas(self, lt, rb, mode):
+        """
+        Генерирует индексы картинок для поиска смещений в режиме деления на области
+
+        Принимает: индекс левой верхней картинки, индекс правой верхней картинки, режим для отображения (х или у)
+        Возвращает: ширину и высоту картинки
+        """
         random_indexes = []
         if mode == 'x':
             print(mode)
@@ -122,8 +139,6 @@ class RemoveOverlay:
                 first = (random.randint(lt[0], rb[0]), random.randint(lt[1], rb[1] - 1))
                 second = (first[0], first[1] + 1)
                 random_indexes.append((first, second))
-        print(lt, rb)
-        print(random_indexes)
         return random_indexes
 
     def random_indexes_generator(self, mode):
@@ -177,12 +192,6 @@ class RemoveOverlay:
             for im1, im2 in self.random_index_generator_areas(lprb[0], lprb[1], 'y'):
                 probabilities = self.probability_finder(im1, im2, 'y')
                 ys.append(probabilities.index(min(probabilities)) + 1)
-        # new_xs = (list(filter(lambda x: x in range(round(statistics.mean(xs) - statistics.stdev(xs) / 2),
-        #                                            round(statistics.mean(xs) + statistics.stdev(xs) / 2)),
-        #                       xs)))
-        # new_ys = (list(filter(lambda x: x in range(round(statistics.mean(ys) - statistics.stdev(ys) / 2),
-        #                                            round(statistics.mean(ys) + statistics.stdev(ys) / 2)),
-        #                       ys)))
         new_xs = xs
         new_ys = ys
         if not new_ys:
